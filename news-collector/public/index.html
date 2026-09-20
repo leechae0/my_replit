@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>국내·외 뉴스 기사 수집기</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f6f8;color:#222}.wrap{max-width:900px;margin:50px auto;padding:24px}.card{background:white;border-radius:18px;padding:28px;box-shadow:0 8px 28px rgba(0,0,0,.08)}h1{margin-top:0;font-size:28px}.search{display:flex;gap:10px}.search input{flex:1;padding:13px 14px;border:1px solid #ccc;border-radius:10px;font-size:16px}.search button,.filters button{border:0;border-radius:10px;padding:12px 16px;cursor:pointer}.search button{background:#222;color:#fff}.filters{display:flex;gap:8px;margin:18px 0}.filters button.active{background:#222;color:#fff}.status{margin:16px 0;color:#666}.news{display:grid;gap:12px}.item{padding:16px;border:1px solid #e5e5e5;border-radius:12px}.tag{font-size:12px;font-weight:bold}.domestic{color:#1359c5}.foreign{color:#b04516}.item a{display:block;margin:6px 0;color:#111;text-decoration:none;font-weight:bold;line-height:1.4}.meta{font-size:12px;color:#777}
+@media(max-width:600px){.search{flex-direction:column}.wrap{margin:15px auto;padding:12px}.card{padding:18px}}
+</style>
+</head>
+<body><div class="wrap"><div class="card">
+<h1>📰 국내·외 뉴스 기사 수집기</h1>
+<div class="search"><input id="q" placeholder="검색 키워드를 입력하세요" value="인공지능"><button id="go">기사 가져오기</button></div>
+<div class="filters"><button class="active" data-f="all">전체</button><button data-f="domestic">🇰🇷 국내</button><button data-f="foreign">🌎 해외</button></div>
+<div id="status" class="status">검색어를 입력하고 기사를 가져오세요.</div><div id="news" class="news"></div>
+</div></div>
+<script>
+let all=[];let filter='all';
+const q=document.getElementById('q'),news=document.getElementById('news'),status=document.getElementById('status');
+function render(){
+ const arr=filter==='all'?all:all.filter(x=>x.kind===filter);
+ news.innerHTML=arr.map(x=>`<div class="item"><span class="tag ${x.kind}">${x.kind==='domestic'?'국내':'해외'}</span><a href="${x.link}" target="_blank" rel="noopener">${x.title}</a><div class="meta">${x.source} · ${x.date?new Date(x.date).toLocaleString():''}</div></div>`).join('');
+ status.textContent=arr.length?`기사 ${arr.length}개를 표시하고 있습니다.`:'표시할 기사가 없습니다.';
+}
+async function load(){
+ const keyword=q.value.trim();
+ if(!keyword){status.textContent='검색어를 입력하세요.';news.innerHTML='';return;}
+ status.textContent='기사를 가져오는 중...';news.innerHTML='';
+ try{
+   const r=await fetch('/api/news?q='+encodeURIComponent(keyword));
+   const d=await r.json(); if(!r.ok) throw new Error(d.error||'오류가 발생했습니다.');
+   all=[...d.domestic,...d.foreign]; render();
+ }catch(e){status.textContent=e.message;}
+}
+document.getElementById('go').onclick=load;
+q.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.f;render();});
+</script></body></html>
